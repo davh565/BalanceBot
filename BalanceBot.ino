@@ -3,11 +3,14 @@
 #include "src/motors.h"
 
 ImuData imuData;
+Motors motors;
+
 void setup(void)
 {
     Serial.begin(115200);
 
     imuInit();
+    motors.init(100.0, 1.0);
 
     delay(1000);
 }
@@ -16,6 +19,7 @@ void loop(void)
 {
     imuUpdate(imuData);
     printSensorData();
+    motors.run();
 }
 
 void printSensorData()
