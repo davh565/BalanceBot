@@ -7,8 +7,10 @@
 
 #include "Arduino.h"
 
+unsigned long previousMillis = 0;
+
 sensors_event_t orientationData, angVelocityData, linearAccelData, magnetometerData, accelerometerData, gravityData;
-uint16_t BNO055_SAMPLERATE_MS = 250;
+uint16_t BNO055_SAMPLERATE_MS = 50;
 
 Adafruit_BNO055 bno = Adafruit_BNO055(55, 0x29, &Wire);
 
@@ -27,6 +29,10 @@ void imuInit()
 
 void imuUpdate(ImuData &imuData)
 {
+    if (millis() - previousMillis < BNO055_SAMPLERATE_MS)
+    {
+        return;
+    }
     bno.getEvent(&orientationData, Adafruit_BNO055::VECTOR_EULER);
     bno.getEvent(&angVelocityData, Adafruit_BNO055::VECTOR_GYROSCOPE);
     bno.getEvent(&linearAccelData, Adafruit_BNO055::VECTOR_LINEARACCEL);
@@ -44,6 +50,5 @@ void imuUpdate(ImuData &imuData)
     imuData.gravity.x = gravityData.acceleration.x;
     imuData.gravity.y = gravityData.acceleration.y;
     imuData.gravity.z = gravityData.acceleration.z;
-
     delay(BNO055_SAMPLERATE_MS);
 }
