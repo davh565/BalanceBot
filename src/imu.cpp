@@ -17,7 +17,9 @@ Adafruit_BNO055 bno = Adafruit_BNO055(55, 0x29, &Wire);
 void imuInit()
 {
     while (!Serial)
+    {
         delay(10); // wait for serial port to open!
+    }
 
     if (!bno.begin())
     {
