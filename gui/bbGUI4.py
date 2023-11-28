@@ -11,6 +11,8 @@ import time
 ser = None
 connected = False
 steppers_enabled = False
+# y_min = 0
+# y_max = 5
 
 
 # Function to close the window and clean up resources
@@ -135,6 +137,10 @@ def update_plot():
         lines = np.array(lines)
         ax.clear()
         ax.plot(lines.transpose())
+        if not l_auto_range_var.get():
+            ax.set_ylim(l_y_min.get(), l_y_max.get())
+        if not r_auto_range_var.get():
+            ax2.set_ylim(r_y_min.get(), r_y_max.get())
         canvas.draw()
 
 
@@ -223,7 +229,7 @@ for i, (param, code) in enumerate(params.items()):
     label = ttk.Label(io_frame, text=param)
     label.grid(row=i, column=0, padx=10, pady=5, sticky="e")  # Align label to right
 
-    entry = ttk.Entry(io_frame)
+    entry = ttk.Entry(io_frame, width=8)
     entry.grid(row=i, column=1, padx=10, pady=5, sticky="w")  # Align entry to left
     entry.bind("<FocusOut>", lambda event, c=code: validate_and_send(event, c))
 
@@ -239,30 +245,66 @@ stepper_toggle_button = ttk.Button(
 )
 stepper_toggle_button.grid(row=len(data_fields) + 1, column=1)
 
-# Frame for plotting
-plot_frame = ttk.Frame(root)
-plot_frame.grid(row=2, column=0, columnspan=3, sticky="nsew")
-root.grid_rowconfigure(2, weight=1)  # Allow plot_frame to expand
-root.grid_columnconfigure(0, weight=1)  # Allow plot_frame to expand horizontally
-
 # Create checkboxes for selecting data to plot
 plot_data_checkboxes = {}
 for i, field in enumerate(data_fields):
     var = tk.BooleanVar(value=True)
-    chk = ttk.Checkbutton(plot_frame, text=field, variable=var, command=update_plot)
-    chk.grid(row=0, column=i, sticky="w")
+    chk = ttk.Checkbutton(io_frame, text=field, variable=var, command=update_plot)
+    chk.grid(row=i, column=3, sticky="w")
     plot_data_checkboxes[field] = var
 
+# Frame for plotting
+plot_frame = ttk.Frame(root)
+plot_frame.grid(row=2, column=0, sticky="nsew")
+root.grid_rowconfigure(2, weight=1)  # Allow plot_frame to expand
+root.grid_columnconfigure(0, weight=1)  # Allow plot_frame to expand horizontally
+
 # Field for specifying number of data points
+num_data_points_label = ttk.Label(plot_frame, text="Max Data Points:")
+num_data_points_label.grid(
+    row=0, column=0, padx=10, pady=5, sticky="e"
+)  # Align label to right
 num_data_points = tk.IntVar(value=50)
-num_points_entry = ttk.Entry(plot_frame, textvariable=num_data_points)
-num_points_entry.grid(row=0, column=len(data_fields), sticky="w")
+num_points_entry = ttk.Entry(plot_frame, textvariable=num_data_points, width=4)
+num_points_entry.grid(row=0, column=1, sticky="w")
+l_y_min = tk.DoubleVar(value=0)
+l_y_min_label = ttk.Label(plot_frame, text="yMinLeft:")
+l_y_min_label.grid(row=0, column=2, padx=10, pady=5, sticky="e")  # Align label to right
+l_y_min_entry = ttk.Entry(plot_frame, textvariable=l_y_min, width=4)
+l_y_min_entry.grid(row=0, column=3, sticky="w")
+l_y_max = tk.DoubleVar(value=5)
+l_y_max_label = ttk.Label(plot_frame, text="yMaxLeft:")
+l_y_max_label.grid(row=0, column=4, padx=10, pady=5, sticky="e")  # Align label to right
+l_y_max_entry = ttk.Entry(plot_frame, textvariable=l_y_max, width=4)
+l_y_max_entry.grid(row=0, column=5, sticky="w")
+l_auto_range_var = tk.BooleanVar(value=True)
+l_auto_range_chk = ttk.Checkbutton(
+    plot_frame, text="AutoRangeLeft", variable=l_auto_range_var
+)
+l_auto_range_chk.grid(row=0, column=6, sticky="w")
+r_y_min = tk.DoubleVar(value=0)
+r_y_min_label = ttk.Label(plot_frame, text="yMinRight:")
+r_y_min_label.grid(row=0, column=7, padx=10, pady=5, sticky="e")  # Align label to right
+r_y_min_entry = ttk.Entry(plot_frame, textvariable=r_y_min, width=4)
+r_y_min_entry.grid(row=0, column=8, sticky="w")
+r_y_max = tk.DoubleVar(value=5)
+r_y_max_label = ttk.Label(plot_frame, text="yMaxRight:")
+r_y_max_label.grid(row=0, column=9, padx=10, pady=5, sticky="e")  # Align label to right
+r_y_max_entry = ttk.Entry(plot_frame, textvariable=r_y_max, width=4)
+r_y_max_entry.grid(row=0, column=10, sticky="w")
+r_auto_range_var = tk.BooleanVar(value=True)
+r_auto_range_chk = ttk.Checkbutton(
+    plot_frame, text="AutoRangeRight", variable=r_auto_range_var
+)
+r_auto_range_chk.grid(row=0, column=11, sticky="w")
 
 # Initialize the plot
 fig, ax = plt.subplots()
+ax2 = ax.twinx()
+ax.set_ylim(l_y_min.get(), l_y_max.get())
 canvas = FigureCanvasTkAgg(fig, master=plot_frame)
 canvas_widget = canvas.get_tk_widget()
-canvas_widget.grid(row=1, column=0, columnspan=len(data_fields) + 1, sticky="ew")
+canvas_widget.grid(row=1, column=0, columnspan=12, sticky="ew")
 
 # Initialize a buffer for storing data
 data_buffer = {field: [] for field in data_fields}
