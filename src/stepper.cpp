@@ -142,3 +142,40 @@ void Stepper::stop()
     Pulse.setRunMode(TARGET);
     setTarget(getPulseCount());
 }
+
+void initMicroStep(MicroStep MS)
+{
+    pinMode(MS1, OUTPUT);
+    pinMode(MS2, OUTPUT);
+    pinMode(MS3, OUTPUT);
+    switch (MS)
+    {
+    case FULL_STEP:
+        digitalWrite(MS1, LOW);
+        digitalWrite(MS2, LOW);
+        digitalWrite(MS3, LOW);
+        break;
+    case HALF_STEP:
+        digitalWrite(MS1, HIGH);
+        digitalWrite(MS2, LOW);
+        digitalWrite(MS3, LOW);
+        break;
+    case QUARTER_STEP:
+        digitalWrite(MS1, LOW);
+        digitalWrite(MS2, HIGH);
+        digitalWrite(MS3, LOW);
+        break;
+    case EIGHTH_STEP:
+        digitalWrite(MS1, HIGH);
+        digitalWrite(MS2, HIGH);
+        digitalWrite(MS3, LOW);
+        break;
+    case SIXTEENTH_STEP:
+        digitalWrite(MS1, HIGH);
+        digitalWrite(MS2, HIGH);
+        digitalWrite(MS3, HIGH);
+        break;
+    default:
+        break;
+    }
+}

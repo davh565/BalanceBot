@@ -4,16 +4,54 @@ import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import numpy as np
 import serial
+import serial.tools.list_ports  # Requires pyserial
 import threading
 import time
 
-# Initialize Serial Connection
 ser = None
-try:
-    ser = serial.Serial("COM3", 115200, timeout=1)
-    time.sleep(2)  # wait for the serial connection to initialize
-except Exception as e:
-    print("Error in serial connection:", e)
+connected = False
+steppers_enabled = False
+
+
+# Function to close the window and clean up resources
+def on_closing():
+    if ser and ser.is_open:
+        ser.close()
+        print("Serial port closed.")
+    root.destroy()
+    quit()
+
+
+# Function to scan for available COM ports
+def scan_ports():
+    ports = serial.tools.list_ports.comports()
+    return [port.device for port in ports]
+
+
+# Function to establish a serial connection
+def connect_serial():
+    global ser
+    global connected
+    com = com_port_var.get()
+    baud = baud_rate_var.get()
+    try:
+        ser = serial.Serial(com, baud, timeout=1)
+        time.sleep(2)  # wait for the serial connection to initialize
+        print(f"Connected to {com} at {baud} baud.")
+        connected = True
+    except Exception as e:
+        print("Error in serial connection:", e)
+
+
+def disconnect_serial():
+    global ser
+    global connected
+    try:
+        ser.close()
+        print(f"Disconnected")
+        connected = False
+    except Exception as e:
+        print("Error in serial connection:", e)
 
 
 # Function to validate and send data to Arduino when the field loses focus
@@ -38,8 +76,9 @@ def validate_and_send(event, code):
 
 # Function to read data from Arduino and update GUI
 def read_from_arduino():
+    global connected
     while True:
-        if ser:
+        if ser and connected:
             try:
                 line = ser.readline().decode("utf-8").strip()
                 if line:
@@ -48,7 +87,29 @@ def read_from_arduino():
                     update_data_buffer(line)
             except Exception as e:
                 print("Error reading from serial:", e)
-        time.sleep(0.1)
+        # time.sleep(0.1)
+
+
+# Function to toggle stepper motors
+def toggle_stepper():
+    global steppers_enabled
+    global connected
+    if connected:
+        if not steppers_enabled:
+            send_command("RUN#")
+            stepper_toggle_button.config(text="Disable Steppers")
+            steppers_enabled = True
+        else:
+            send_command("STOP#")
+            stepper_toggle_button.config(text="Enable Steppers")
+            steppers_enabled = False
+
+
+# Function to send a command to the Arduino
+def send_command(command):
+    if ser and ser.is_open:
+        ser.write(command.encode())
+        print(f"Sent: {command}")
 
 
 # Function to update GUI with received data
@@ -91,9 +152,59 @@ def update_data_buffer(line):
         print("Error updating data buffer:", e)
 
 
+# Function to resize the plot when the window size changes
+def resize_plot(event):
+    # Update the canvas size to match the new window size
+    canvas_widget.config(width=event.width - 10, height=event.height - 10)
+
+
 # Create the main window
 root = tk.Tk()
-root.title("Arduino Control Panel")
+root.title("BalanceBot Control Panel")
+root.geometry("800x900")
+
+# Frame for connection settings
+connection_frame = ttk.Frame(root)
+connection_frame.grid(row=0, column=0, columnspan=3, padx=10, pady=5, sticky="ew")
+
+# COM Port and Baud Rate Selection
+com_port_var = tk.StringVar()
+baud_rate_var = tk.StringVar(value="115200")  # Default baud rate
+
+com_ports = scan_ports()
+com_port_cb = ttk.Combobox(
+    connection_frame, textvariable=com_port_var, values=com_ports
+)
+com_port_cb.grid(row=0, column=0, padx=10, pady=5)
+com_port_cb.set("COM3")  # Placeholder text
+
+baud_rates = [
+    "9600",
+    "14400",
+    "19200",
+    "38400",
+    "57600",
+    "115200",
+    "230400",
+    "460800",
+    "921600",
+]
+baud_rate_cb = ttk.Combobox(
+    connection_frame, textvariable=baud_rate_var, values=baud_rates
+)
+baud_rate_cb.grid(row=0, column=1, padx=10, pady=5)
+
+connect_button = ttk.Button(connection_frame, text="Connect", command=connect_serial)
+connect_button.grid(row=0, column=2, padx=10, pady=5)
+
+disconnect_button = ttk.Button(
+    connection_frame, text="Disconnect", command=disconnect_serial
+)
+disconnect_button.grid(row=0, column=3, padx=10, pady=5)
+
+# Frame for input/output fields
+io_frame = ttk.Frame(root)
+io_frame.grid(row=1, column=0, columnspan=3, padx=10, pady=5, sticky="ew")
 
 # Define parameter codes and data fields
 params = {
@@ -109,22 +220,30 @@ data_labels = {}
 
 # Create input fields using grid layout
 for i, (param, code) in enumerate(params.items()):
-    label = ttk.Label(root, text=param)
+    label = ttk.Label(io_frame, text=param)
     label.grid(row=i, column=0, padx=10, pady=5, sticky="e")  # Align label to right
 
-    entry = ttk.Entry(root)
+    entry = ttk.Entry(io_frame)
     entry.grid(row=i, column=1, padx=10, pady=5, sticky="w")  # Align entry to left
     entry.bind("<FocusOut>", lambda event, c=code: validate_and_send(event, c))
 
 # Create labels for data display in a separate loop
 for i, field in enumerate(data_fields):
-    data_label = ttk.Label(root, text=f"{field}: N/A")
+    data_label = ttk.Label(io_frame, text=f"{field}: N/A")
     data_label.grid(row=i, column=2, padx=10, pady=5, sticky="w")
     data_labels[field] = data_label
 
-# Section for plotting
+# stepper_toggle_var = tk.BooleanVar()
+stepper_toggle_button = ttk.Button(
+    io_frame, text="Enable Steppers", command=toggle_stepper
+)
+stepper_toggle_button.grid(row=len(data_fields) + 1, column=1)
+
+# Frame for plotting
 plot_frame = ttk.Frame(root)
-plot_frame.grid(row=len(params), column=0, columnspan=3, sticky="ew", padx=10, pady=10)
+plot_frame.grid(row=2, column=0, columnspan=3, sticky="nsew")
+root.grid_rowconfigure(2, weight=1)  # Allow plot_frame to expand
+root.grid_columnconfigure(0, weight=1)  # Allow plot_frame to expand horizontally
 
 # Create checkboxes for selecting data to plot
 plot_data_checkboxes = {}
@@ -148,13 +267,19 @@ canvas_widget.grid(row=1, column=0, columnspan=len(data_fields) + 1, sticky="ew"
 # Initialize a buffer for storing data
 data_buffer = {field: [] for field in data_fields}
 
+# Bind the resize event to the resize_plot function
+plot_frame.bind("<Configure>", resize_plot)
+
 # Start a new thread for reading data from Arduino
 thread = threading.Thread(target=read_from_arduino, daemon=True)
 thread.start()
 
+# Bind the closing event of the window
+root.protocol("WM_DELETE_WINDOW", on_closing)
+
 # Start the GUI event loop
 root.mainloop()
 
-# Close the serial connection when the GUI is closed, if it was opened
-if ser:
-    ser.close()
+# # Close the serial connection when the GUI is closed, if it was opened
+# if ser:
+#     ser.close()

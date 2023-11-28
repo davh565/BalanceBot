@@ -3,6 +3,16 @@
 
 #include <Arduino.h>
 #include "pulse.h"
+#include "config.h"
+
+enum MicroStep
+{
+    FULL_STEP,
+    HALF_STEP,
+    QUARTER_STEP,
+    EIGHTH_STEP,
+    SIXTEENTH_STEP
+};
 
 /// @brief Stepper motor class.
 class Stepper
@@ -42,4 +52,6 @@ public:
     void stop();
     void init(int pinDIR, PulsePin pinPUL, uint32_t maxFrequency, double pulsesPerDeg);
 };
+
+void initMicroStep(MicroStep MS);
 #endif // BB_STP
