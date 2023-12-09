@@ -16,7 +16,9 @@ struct ImuData
     Coords gravity;
 };
 
-void imuInit();
-void imuUpdate(ImuData &imuData);
+void MPUInit();
+void MPUUpdate(ImuData &imuData);
+void BNOInit();
+void BNOUpdate(ImuData &imuData);
 
 #endif

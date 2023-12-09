@@ -221,7 +221,7 @@ params = {
     "Limits": "LM",
     "MaxSpeed": "FQ",
 }
-data_fields = ["Output", "y", "z", "Setpoint", "Gravity"]
+data_fields = ["Output", "Bz", "My", "Setpoint"]
 data_labels = {}
 
 # Create input fields using grid layout

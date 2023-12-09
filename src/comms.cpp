@@ -1,28 +1,5 @@
 #include "comms.h"
 
-long prevMillis = 0;
-long curMillis = 0;
-void printData(int printDelay)
-{
-    curMillis = millis();
-    if (curMillis - prevMillis > printDelay)
-    {
-        // Serial.print("Output:");
-        // Serial.print(angleControl.output);
-        // Serial.print(", y:");
-        // Serial.print(imuData.orientation.y);
-        // Serial.print(", z:");
-        // Serial.print(imuData.orientation.z);
-        // Serial.print(", Setpoint:");
-        // Serial.print(angleControl.setpoint);
-        // Serial.print(", Gravity:");
-        // Serial.print((imuData.gravity.z - 9.81) * 10);
-        // Serial.print("\n");
-        // printSensorData();
-        prevMillis = curMillis;
-    }
-}
-
 bool readStringUntilChar(String &buffer, char terminator)
 {
     while (Serial.available())

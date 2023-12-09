@@ -7,15 +7,18 @@
 int speedSP = 0;
 struct PidData
 {
-    double Kp = 300;
-    double Ki = 0.0;
-    double Kd = 0.00;
-    double setpoint = 0.0;
+    double Kp = 400;
+    double Ki = 500.0;
+    double Kd = 0.1;
+    double setpoint = -2.0;
     double input = 0;
     double output = 0;
 } angleControl;
 
-ImuData imuData;
+long prevMillis = 0;
+long curMillis = 0;
+ImuData BNOData;
+ImuData MPUData;
 Stepper stepperLeft;
 Stepper stepperRight;
 
@@ -29,10 +32,9 @@ PID anglePID(&angleControl.input,
 
 String buffer;
 int printDelay = 250;
-bool enableSteppers = true;
+bool enableSteppers = false;
 bool enablePrint = true;
 double maxAngle = 25.0;
-double minAngle = maxAngle * -1.0;
 int maxFreq = 4000;
 MicroStep MS = EIGHTH_STEP;
 
@@ -47,7 +49,8 @@ void setup()
     initMicroStep(MS);
 
     Serial.begin(115200);
-    imuInit();
+    BNOInit();
+    MPUInit();
     // Serial.begin(115200);
 
     stepperLeft.init(DIR_PIN_LEFT, PULSE_PIN_LEFT, maxFreq, 0.555555556);
@@ -69,8 +72,10 @@ void loop()
         buffer = "";
     }
 
-    imuUpdate(imuData);
-    angleControl.input = imuData.orientation.z;
+    BNOUpdate(BNOData);
+    MPUUpdate(MPUData);
+    angleControl.input = BNOData.orientation.z;
+    // angleControl.input = -MPUData.orientation.y;
     anglePID.SetTunings(angleControl.Kp, angleControl.Ki, angleControl.Kd);
     anglePID.SetOutputLimits(-maxFreq, maxFreq);
     anglePID.Compute();
@@ -112,63 +117,68 @@ void parseCommand(String &input)
         //        Serial.println("Stop");
         enableSteppers = false;
     }
-    else if (input == "PRINT#")
-    {
-        //        Serial.println("Print");
-        enablePrint = true;
-    }
-    else if (input == "NOPRINT#")
-    {
-        //        Serial.println("No Print");
-        enablePrint = false;
-    }
     else if (input.startsWith("SP:"))
     {
         val = extractNum(input);
-        //        Serial.print("Setpoint: ");
-        //        Serial.println(val);
         angleControl.setpoint = val;
     }
     else if (input.startsWith("KP:"))
     {
         val = extractNum(input);
-        //        Serial.print("Kp: ");
-        //        Serial.println(val);
         angleControl.Kp = val;
     }
     else if (input.startsWith("KI:"))
     {
         val = extractNum(input);
-        //        Serial.print("Ki: ");
-        //        Serial.println(val);
         angleControl.Ki = val;
     }
     else if (input.startsWith("KD:"))
     {
         val = extractNum(input);
-        //        Serial.print("Kd: ");
-        //        Serial.println(val);
         angleControl.Kd = val;
     }
     else if (input.startsWith("LM:"))
     {
         val = extractNum(input);
-        //        Serial.print("Limits: ");
-        //        Serial.println(val);
-        minAngle = -val;
         maxAngle = val;
     }
     else if (input.startsWith("FQ:"))
     {
         val = extractNum(input);
-        //        Serial.print("MaxSpeed: ");
-        //        Serial.println(val);
         maxFreq = val;
-        // anglePID.SetOutputLimits(-maxFreq, maxFreq);
     }
 }
 
 bool inBounds()
 {
-    return imuData.orientation.z > minAngle && imuData.orientation.z < maxAngle;
+    return BNOData.orientation.z > -maxAngle && BNOData.orientation.z < maxAngle;
+}
+
+void printData(int printDelay)
+{
+    curMillis = millis();
+    if (curMillis - prevMillis > printDelay)
+    {
+        Serial.print("Output:");
+        Serial.print(angleControl.output);
+        // Serial.print(", y:");
+        // Serial.print(BNOData.orientation.y);
+        Serial.print(", Bz:");
+        Serial.print(BNOData.orientation.z);
+        // Serial.print(", Bg:");
+        // Serial.print(BNOData.gravity.z);
+        // Serial.print(", Mx:");
+        // Serial.print(MPUData.orientation.x);
+        Serial.print(", My:");
+        Serial.print(-MPUData.orientation.y);
+        // Serial.print(", Mz:");
+        // Serial.print(MPUData.orientation.z);
+        // Serial.print(", Mg:");
+        // Serial.print(MPUData.gravity.z);
+        Serial.print(", Setpoint:");
+        Serial.print(angleControl.setpoint);
+        Serial.print("\n");
+        // printSensorData();
+        prevMillis = curMillis;
+    }
 }
