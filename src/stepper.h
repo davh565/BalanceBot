@@ -19,7 +19,10 @@ class Stepper
 {
 private:
     bool isEnabled;
-    double pulsesPerDeg;
+    double stepsPerRev;
+    double wheelDiameter;
+    int microStepMultiplier;
+    MicroStep MS;
     direction dir;
     int pinDIR;
     uint32_t maxFrequency;
@@ -30,6 +33,7 @@ private:
     void setDirection(direction dir);
     void setTarget(int32_t target) { Pulse.setTarget(target); }
     void setEnabled(bool isEnabled);
+    void initMicroStep(MicroStep MS);
 
 public:
     PulseGenerator Pulse;
@@ -37,8 +41,9 @@ public:
     uint32_t getFrequency() { return frequency; }
     uint32_t getMaxFrequency() { return maxFrequency; }
     bool getEnabled() { return Pulse.getEnabled(); }
-    double getPulsesPerDeg() { return pulsesPerDeg; }
     long getPulseCount() { return Pulse.getCount(); }
+    double getPosition();
+    double getAngle();
     void setFrequency(uint32_t frequency);
     void runPulses(int32_t steps);
     void runAngle(double angle);
@@ -50,8 +55,12 @@ public:
     void enable();
     // void runPulses() { runPulses(0); }
     void stop();
-    void init(int pinDIR, PulsePin pinPUL, uint32_t maxFrequency, double pulsesPerDeg);
+    void init(int pinDIR,
+              PulsePin pinPUL,
+              MicroStep MS,
+              uint32_t maxFrequency,
+              double stepsPerRev,
+              double wheelDiameter);
 };
 
-void initMicroStep(MicroStep MS);
 #endif // BB_STP

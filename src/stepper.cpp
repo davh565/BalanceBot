@@ -6,15 +6,23 @@
 /// @param pinPUL The pin number for the pulse output.
 /// @param maxFrequency The maximum frequency of the pulse output.
 /// @param pulsesPerDeg The number of pulses per degree of rotation.
-void Stepper::init(int pinDIR, PulsePin pinPUL, uint32_t maxFrequency, double pulsesPerDeg)
+void Stepper::init(int pinDIR,
+                   PulsePin pinPUL,
+                   MicroStep MS,
+                   uint32_t maxFrequency,
+                   double stepsPerRev,
+                   double wheelDiameter)
 {
+    this->MS = MS;
     this->pinDIR = pinDIR;
     this->maxFrequency = maxFrequency;
-    this->pulsesPerDeg = pulsesPerDeg;
+    this->stepsPerRev = stepsPerRev;
+    this->wheelDiameter = wheelDiameter;
     frequency = maxFrequency;
 
     dir = FORWARD;
     pinMode(pinDIR, OUTPUT);
+    initMicroStep(MS);
     Pulse.init(pinPUL, maxFrequency);
     Pulse.setDirection(dir);
     Pulse.setRunMode(TARGET);
@@ -66,6 +74,15 @@ void Stepper::runPulses(int32_t steps)
     enable();
 }
 
+double Stepper::getPosition()
+{
+    return PI * wheelDiameter * getAngle();
+}
+double Stepper::getAngle()
+{
+    return getPulseCount() / (microStepMultiplier * stepsPerRev);
+}
+
 /// @brief  Run the stepper motor to a target position.
 /// @param target The target position in pulses.
 void Stepper::runToTarget(int32_t target)
@@ -91,7 +108,7 @@ void Stepper::runToTarget(int32_t target)
 void Stepper::runAngle(double angle)
 {
     // Serial.println(angle);
-    runPulses(angle * pulsesPerDeg);
+    runPulses(angle * stepsPerRev / 360);
 }
 
 /// @brief  Run the stepper motor at specified speed indefinitely
@@ -143,7 +160,7 @@ void Stepper::stop()
     setTarget(getPulseCount());
 }
 
-void initMicroStep(MicroStep MS)
+void Stepper::initMicroStep(MicroStep MS)
 {
     pinMode(MS1, OUTPUT);
     pinMode(MS2, OUTPUT);
@@ -154,26 +171,31 @@ void initMicroStep(MicroStep MS)
         digitalWrite(MS1, LOW);
         digitalWrite(MS2, LOW);
         digitalWrite(MS3, LOW);
+        microStepMultiplier = 1;
         break;
     case HALF_STEP:
         digitalWrite(MS1, HIGH);
         digitalWrite(MS2, LOW);
         digitalWrite(MS3, LOW);
+        microStepMultiplier = 2;
         break;
     case QUARTER_STEP:
         digitalWrite(MS1, LOW);
         digitalWrite(MS2, HIGH);
         digitalWrite(MS3, LOW);
+        microStepMultiplier = 4;
         break;
     case EIGHTH_STEP:
         digitalWrite(MS1, HIGH);
         digitalWrite(MS2, HIGH);
         digitalWrite(MS3, LOW);
+        microStepMultiplier = 8;
         break;
     case SIXTEENTH_STEP:
         digitalWrite(MS1, HIGH);
         digitalWrite(MS2, HIGH);
         digitalWrite(MS3, HIGH);
+        microStepMultiplier = 16;
         break;
     default:
         break;

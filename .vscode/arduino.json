@@ -2,7 +2,7 @@
     "sketch": "BalanceBot.ino",
     "configuration": "cpu=atmega2560",
     "board": "arduino:avr:mega",
-    "port": "COM4",
+    "port": "COM3",
     "output": "../_common/_build",
     "programmer": "avrispmkii"
 }
