@@ -19,4 +19,27 @@
 #define MS3 11
 #define TXS 12
 #define RXS 13
+
+struct PidData
+{
+    double Kp = 1;
+    double Ki = 0.0;
+    double Kd = 0.0;
+    double sp = 0.0;
+    double in = 0;
+    double out = 0;
+};
+
+// Key-Value Pair
+template <typename T>
+struct kvp
+{
+    String key;
+    T *valuePtr;
+};
+
+// Determine Array Size on Compile
+template <size_t N, typename T>
+constexpr size_t sizeOf(T (&)[N]) { return N; }
+
 #endif

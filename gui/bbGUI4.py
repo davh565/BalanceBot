@@ -130,18 +130,29 @@ def update_gui(data):
 def update_plot():
     global data_buffer
     lines = []
+    output_line = None  # Variable to store the "Output" series if selected
+
     for key in plot_data_checkboxes:
         if plot_data_checkboxes[key].get():
-            lines.append(data_buffer[key][-num_data_points.get() :])
+            if key == "Output":
+                output_line = data_buffer[key][-num_data_points.get() :]
+            else:
+                lines.append(data_buffer[key][-num_data_points.get() :])
+
     if lines:
         lines = np.array(lines)
         ax.clear()
         ax.plot(lines.transpose())
         if not l_auto_range_var.get():
             ax.set_ylim(l_y_min.get(), l_y_max.get())
+
+    if output_line is not None:
+        ax2.clear()
+        ax2.plot(output_line)
         if not r_auto_range_var.get():
             ax2.set_ylim(r_y_min.get(), r_y_max.get())
-        canvas.draw()
+
+    canvas.draw()
 
 
 # Function to update the data buffer for plotting
@@ -214,12 +225,17 @@ io_frame.grid(row=1, column=0, columnspan=3, padx=10, pady=5, sticky="ew")
 
 # Define parameter codes and data fields
 params = {
-    "KP": "KP",
-    "KI": "KI",
-    "KD": "KD",
-    "Setpoint": "SP",
-    "Limits": "LM",
-    "MaxSpeed": "FQ",
+    "AngKP": "AKP",
+    "AngKI": "AKI",
+    "AngKD": "AKD",
+    "TiltOffset": "ASP",
+    "maxAngle": "ALM",
+    "MaxSpeed": "AFQ",
+    "PosKP": "PKP",
+    "PosKI": "PKI",
+    "PosKD": "PKD",
+    "PosSP": "PSP",
+    "MaxTilt": "ALM",
 }
 data_fields = ["Output", "Bz", "My", "Setpoint", "Ang", "Pos"]
 data_labels = {}
@@ -243,7 +259,7 @@ for i, field in enumerate(data_fields):
 stepper_toggle_button = ttk.Button(
     io_frame, text="Enable Steppers", command=toggle_stepper
 )
-stepper_toggle_button.grid(row=len(data_fields) + 1, column=1)
+stepper_toggle_button.grid(row=len(params) + 1, column=1)
 
 # Create checkboxes for selecting data to plot
 plot_data_checkboxes = {}
